@@ -2,15 +2,17 @@ import std/[os, strutils]
 
 when defined(windows):
   # Default LLVM install library path on Windows
-  const libpath = getEnv("ProgramFiles") / "LLVM" / "bin"
+  const libpath = getEnv("CUSTOM_BIN") / "LLVM" / "bin"
   if libpath.dirExists():
     switch("passL", "-L" & quoteShell(libpath))
+    switch("passL", "-lclang_rt.asan_dynamic-x86_64")
 elif defined(macosx):
   # Try command-line tools lib path first
   const libpath = "/Library/Developer/CommandLineTools/usr/lib"
   if (libpath / "libclang.dylib").fileExists():
     switch("passL", "-L" & quoteShell(libpath))
     switch("passL", "-Wl,-rpath " & quoteShell(libpath.quoteShell))
+    switch("passL", "-lclang")
   else:
     const cmdres = gorgeEx("xcode-select -p")
     if cmdres.exitCode != 0:
@@ -28,6 +30,7 @@ elif defined(macosx):
           "-Wl,-rpath " &
             quoteShell(libpath2.quoteShell),
         )
+        switch("passL", "-lclang")
         break
 elif defined(linux):
   const cmdres = gorgeEx("clang -print-file-name=../../libclang.so")
@@ -43,5 +46,5 @@ elif defined(linux):
     const libpath2 = cmdres.output.strip().parentDir()
     if fileExists(libpath2 / "libclang.so"):
       switch("passL", "-L" & libpath2)
+  switch("passL", "-lclang")
 
-switch("passL", "-lclang")
